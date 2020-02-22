@@ -2,19 +2,27 @@ package encode
 
 import (
 	"fmt"
+	"github.com/giorgisio/goav/avcodec"
 	"github.com/giorgisio/goav/avformat"
 	"github.com/giorgisio/goav/avutil"
+	"unsafe"
 )
 
+func init() {
+	avformat.AvRegisterAll()
+}
+
 type EncodingContext struct {
-	FormatCtx *avformat.Context
-	Filename  string
+	FormatCtx      *avformat.Context
+	Filename       string
+	DecodeContexts []*avcodec.Context
 }
 
 func NewEncodingContext() EncodingContext {
 	return EncodingContext{
 		FormatCtx: avformat.AvformatAllocContext(),
 		Filename:  "",
+		DecodeContexts: nil,
 	}
 }
 
@@ -24,6 +32,33 @@ func (c *EncodingContext) OpenInput(path string) error {
 
 	if err != 0 {
 		return fmt.Errorf("OpenInput: %v", avutil.ErrorFromCode(err))
+	}
+
+	streams := c.FormatCtx.Streams()
+	for i := uint(0); i < c.FormatCtx.NbStreams(); i++ {
+		stream := streams[i]
+		codecContext := stream.Codec()
+
+		codec := avcodec.AvcodecFindDecoder(avcodec.CodecId(codecContext.GetCodecId()))
+
+		if codec == nil {
+			return fmt.Errorf("could not find decoder for %v", codecContext.GetCodecId())
+		}
+
+		decodeContext := codec.AvcodecAllocContext3()
+		err = decodeContext.AvcodecCopyContext((*avcodec.Context)(unsafe.Pointer(codecContext)))
+
+		if err != 0 {
+			return fmt.Errorf("OpenInput: %v", avutil.ErrorFromCode(err))
+		}
+
+		err = decodeContext.AvcodecOpen2(codec, nil)
+
+		if err < 0 {
+			return fmt.Errorf("OpenInput: %v", avutil.ErrorFromCode(err))
+		}
+
+		c.DecodeContexts = append(c.DecodeContexts, decodeContext)
 	}
 
 	return nil

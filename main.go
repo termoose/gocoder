@@ -1,13 +1,12 @@
 package main
 
 import (
-	"github.com/giorgisio/goav/avformat"
+	"fmt"
 	"gocoder/encode"
 	"log"
 )
 
 func main() {
-	avformat.AvRegisterAll()
 	context := encode.NewEncodingContext()
 	filename := "small.mp4"
 
@@ -21,4 +20,8 @@ func main() {
 
 	context.FindStreamInfo()
 	context.DumpStreamInfo()
+
+	for i, ctx := range context.DecodeContexts {
+		fmt.Printf("Stream %d codec %p\n", i, ctx)
+	}
 }
