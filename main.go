@@ -8,7 +8,7 @@ import (
 
 func main() {
 	context := encode.NewEncodingContext()
-	filename := "small.mp4"
+	filename := "assets/small.mp4"
 
 	err := context.OpenInput(filename)
 	defer context.CloseInput()

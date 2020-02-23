@@ -34,9 +34,7 @@ func (c *EncodingContext) OpenInput(path string) error {
 		return fmt.Errorf("OpenInput: %v", avutil.ErrorFromCode(err))
 	}
 
-	streams := c.FormatCtx.Streams()
-	for i := uint(0); i < c.FormatCtx.NbStreams(); i++ {
-		stream := streams[i]
+	for _, stream := range c.FormatCtx.Streams() {
 		codecContext := stream.Codec()
 
 		codec := avcodec.AvcodecFindDecoder(avcodec.CodecId(codecContext.GetCodecId()))
