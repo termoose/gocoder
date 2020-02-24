@@ -1,4 +1,4 @@
-package encode
+package input
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ const (
 )
 
 func TestOpenClose(t *testing.T) {
-	context := NewEncodingContext()
+	context := NewContext()
 
 	if context.FormatCtx == nil {
 		t.Error("Format context not created")
@@ -25,6 +25,20 @@ func TestOpenClose(t *testing.T) {
 		nrStreams := len(context.DecodeContexts)
 		if nrStreams != 2 {
 			t.Errorf("Missing streams, found %d\n", nrStreams)
+		}
+	})
+
+	t.Run("ReadInput", func(t *testing.T) {
+		c := context.ReadInput()
+
+		size := 0
+		for elem := range c {
+			size += elem.Size()
+		}
+
+		// Check that we have demuxed everything
+		if size != 379872 {
+			t.Errorf("File size incorrect: %d bytes", size)
 		}
 	})
 

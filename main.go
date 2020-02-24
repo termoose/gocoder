@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"gocoder/encode"
+	"gocoder/input"
 	"log"
 )
 
 func main() {
-	context := encode.NewEncodingContext()
+	context := input.NewContext()
 	filename := "assets/small.mp4"
 
 	err := context.OpenInput(filename)
@@ -23,5 +23,11 @@ func main() {
 
 	for i, ctx := range context.DecodeContexts {
 		fmt.Printf("Stream %d codec %p\n", i, ctx)
+	}
+
+	c := context.ReadInput()
+
+	for elem := range c {
+		fmt.Printf("Packet: %d\n", elem.Size())
 	}
 }
