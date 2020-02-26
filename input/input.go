@@ -55,10 +55,10 @@ func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) {
 	frame := avutil.AvFrameAlloc()
 
 	for packet := range stream {
-		err := c.sendToDecoder(packet)
+		_ = c.sendToDecoder(packet)
 		index := packet.StreamIndex()
 
-		for err >= 0 {
+		for err := 0; err >= 0; {
 			err = c.getFromDecoder(index, frame)
 
 			if err == avutil.AvErrorEAGAIN || err == avutil.AvErrorEOF {
