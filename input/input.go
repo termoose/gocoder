@@ -55,23 +55,22 @@ func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) {
 	frame := avutil.AvFrameAlloc()
 
 	for packet := range stream {
-		sendErr := c.sendToDecoder(packet)
+		err := c.sendToDecoder(packet)
 		index := packet.StreamIndex()
 
-		for sendErr >= 0 {
-			resp := c.getFromDecoder(index, frame)
+		for err >= 0 {
+			err = c.getFromDecoder(index, frame)
 
-			if resp == avutil.AvErrorEAGAIN || resp == avutil.AvErrorEOF {
-				//fmt.Printf("Resp: %s\n", avutil.ErrorFromCode(resp))
+			if err == avutil.AvErrorEAGAIN || err == avutil.AvErrorEOF {
 				break
-			} else if resp < 0 {
+			} else if err < 0 {
 				fmt.Printf("Error getting frame from decoder: %s\n",
-					avutil.ErrorFromCode(resp))
+					avutil.ErrorFromCode(err))
 			}
-		}
 
-		//width, height, _, _ := avutil.AvFrameGetInfo(frame)
-		//fmt.Printf("Frame width/height: %dx%d\n", width, height)
+			width, height, _, _ := avutil.AvFrameGetInfo(frame)
+			fmt.Printf("Frame width/height: %dx%d\n", width, height)
+		}
 	}
 }
 
