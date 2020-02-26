@@ -27,7 +27,8 @@ func main() {
 
 	c := context.ReadInput()
 
-	for elem := range c {
-		fmt.Printf("Packet: %d\n", elem.Size())
-	}
+	context.DecodeStream(c)
+	//for elem := range c {
+	//	fmt.Printf("Packet: %d\n", elem.Size())
+	//}
 }
