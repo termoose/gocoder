@@ -1,6 +1,7 @@
 package input
 
 import (
+	"github.com/giorgisio/goav/avutil"
 	"testing"
 )
 
@@ -28,17 +29,21 @@ func TestOpenClose(t *testing.T) {
 		}
 	})
 
-	t.Run("ReadInput", func(t *testing.T) {
+	t.Run("DecodeInput", func(t *testing.T) {
 		c := context.ReadInput()
 
-		size := 0
-		for elem := range c {
-			size += elem.Size()
+		frames := context.DecodeStream(c)
+		count := 0
+		for frame := range frames {
+			width, height, _, _ := avutil.AvFrameGetInfo(frame)
+
+			if width != 0 && height != 0 {
+				count++
+			}
 		}
 
-		// Check that we have demuxed everything
-		if size != 379872 {
-			t.Errorf("File size incorrect: %d bytes", size)
+		if count != 166 {
+			t.Errorf("Incorrect number %d of frames decoded\n", count)
 		}
 	})
 

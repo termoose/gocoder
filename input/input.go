@@ -37,6 +37,8 @@ func (c *Context) ReadInput() chan *avcodec.Packet {
 
 			// FIXME: find a good way to communicate this out through the channel?
 			if err == avutil.AvErrorEOF {
+				// Send the EOF packet to signal EOF to decoder thread
+				outBuffer <- packet
 				close(outBuffer)
 				return
 			} else if err < 0 {
@@ -51,27 +53,37 @@ func (c *Context) ReadInput() chan *avcodec.Packet {
 	return outBuffer
 }
 
-func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) {
-	frame := avutil.AvFrameAlloc()
+func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) chan *avutil.Frame {
+	outBuffer := make(chan *avutil.Frame, 50)
 
-	for packet := range stream {
-		_ = c.sendToDecoder(packet)
-		index := packet.StreamIndex()
+	go func() {
+		for packet := range stream {
+			_ = c.sendToDecoder(packet)
+			index := packet.StreamIndex()
 
-		for err := 0; err >= 0; {
-			err = c.getFromDecoder(index, frame)
+			for err := 0; err >= 0; {
+				frame := avutil.AvFrameAlloc()
+				err = c.getFromDecoder(index, frame)
 
-			if err == avutil.AvErrorEAGAIN || err == avutil.AvErrorEOF {
-				break
-			} else if err < 0 {
-				fmt.Printf("Error getting frame from decoder: %s\n",
-					avutil.ErrorFromCode(err))
+				if err == avutil.AvErrorEAGAIN {
+					break
+				} else if err == avutil.AvErrorEOF {
+					fmt.Printf("EOF decode")
+					close(outBuffer)
+					return
+				} else if err < 0 {
+					fmt.Printf("Error getting frame from decoder: %s\n",
+						avutil.ErrorFromCode(err))
+					close(outBuffer)
+					return
+				}
+
+				outBuffer <- frame
 			}
-
-			width, height, _, _ := avutil.AvFrameGetInfo(frame)
-			fmt.Printf("Frame width/height: %dx%d\n", width, height)
 		}
-	}
+	}()
+
+	return outBuffer
 }
 
 func (c *Context) OpenInput(path string) error {
@@ -90,9 +102,6 @@ func (c *Context) OpenInput(path string) error {
 		if codec == nil {
 			return fmt.Errorf("could not find decoder for %v", codecContext.GetCodecId())
 		}
-
-		codecName := avcodec.AvcodecGetName(avcodec.CodecId(codecContext.GetCodecId()))
-		fmt.Printf("Opening decoder: %s\n", codecName)
 
 		decodeContext := codec.AvcodecAllocContext3()
 		err = decodeContext.AvcodecCopyContext((*avcodec.Context)(unsafe.Pointer(codecContext)))

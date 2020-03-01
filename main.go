@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/giorgisio/goav/avutil"
 	"gocoder/input"
 	"log"
 )
@@ -27,8 +28,9 @@ func main() {
 
 	c := context.ReadInput()
 
-	context.DecodeStream(c)
-	//for elem := range c {
-	//	fmt.Printf("Packet: %d\n", elem.Size())
-	//}
+	decodedFrames := context.DecodeStream(c)
+	for elem := range decodedFrames {
+		width, height, _, _ := avutil.AvFrameGetInfo(elem)
+		fmt.Printf("Frame %dx%d\n", width, height)
+	}
 }
