@@ -24,8 +24,8 @@ type Audio struct {
 
 func (v *Video) encode(frame *avutil.Frame) *avcodec.Packet {
 	_ = (*avformat.CodecContext)(unsafe.Pointer(v.Context))
-	//
-	//avcodec.Avcodecfr
+	//v.Context.AvcodecSendFrame()
+
 	return nil
 }
 
