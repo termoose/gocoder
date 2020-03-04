@@ -23,7 +23,7 @@ type Audio struct {
 }
 
 func (v *Video) Encode(stream <-chan *avutil.Frame) chan *avcodec.Packet {
-	outBuffer := make(chan *avcodec.Packet, 50)
+	outBuffer := make(chan *avcodec.Packet, 150)
 
 	go func() {
 		for frame := range stream {
@@ -37,6 +37,7 @@ func (v *Video) Encode(stream <-chan *avutil.Frame) chan *avcodec.Packet {
 				if err == avutil.AvErrorEAGAIN {
 					break
 				} else if err == avutil.AvErrorEOF {
+					fmt.Println("EOF encode")
 					close(outBuffer)
 					return
 				} else if err < 0 {
@@ -45,9 +46,11 @@ func (v *Video) Encode(stream <-chan *avutil.Frame) chan *avcodec.Packet {
 					close(outBuffer)
 					return
 				}
+
+				outBuffer <- packet
 			}
 		}
-	}();
+	}()
 
 	return outBuffer
 }

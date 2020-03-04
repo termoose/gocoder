@@ -38,7 +38,7 @@ func main() {
 	//}
 
 	video := encode.NewVideoEncoder()
-	video.SetOptions(800, 600)
+	video.SetOptions(560, 320)
 	encodedFrames := video.Encode(decodedFrames)
 
 	for elem := range encodedFrames {

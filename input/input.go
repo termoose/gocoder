@@ -69,6 +69,8 @@ func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) chan *avutil.Frame
 					break
 				} else if err == avutil.AvErrorEOF {
 					fmt.Println("EOF decode")
+					// Send nil frame to signal EOF to encoders
+					outBuffer <- nil
 					close(outBuffer)
 					return
 				} else if err < 0 {
@@ -78,7 +80,9 @@ func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) chan *avutil.Frame
 					return
 				}
 
-				outBuffer <- frame
+				if index == 0 {
+					outBuffer <- frame
+				}
 			}
 		}
 	}()
