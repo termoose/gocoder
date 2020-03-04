@@ -1,7 +1,7 @@
 package encode
 
 import (
-	_ "fmt"
+	"fmt"
 	"github.com/giorgisio/goav/avcodec"
 	"github.com/giorgisio/goav/avformat"
 	"github.com/giorgisio/goav/avutil"
@@ -9,7 +9,7 @@ import (
 )
 
 type Encoder interface {
-	encode(frame *avutil.Frame) *avcodec.Packet
+	Encode(frame *avutil.Frame) *avcodec.Packet
 }
 
 type Video struct {
@@ -22,11 +22,34 @@ type Audio struct {
 	Context *avcodec.Context
 }
 
-func (v *Video) encode(frame *avutil.Frame) *avcodec.Packet {
-	_ = (*avformat.CodecContext)(unsafe.Pointer(v.Context))
-	//v.Context.AvcodecSendFrame()
+func (v *Video) Encode(stream <-chan *avutil.Frame) chan *avcodec.Packet {
+	outBuffer := make(chan *avcodec.Packet, 50)
 
-	return nil
+	go func() {
+		for frame := range stream {
+			codecFrame := (*avcodec.Frame)(unsafe.Pointer(frame))
+			_ = v.Context.AvcodecSendFrame(codecFrame)
+
+			for err := 0; err >= 0; {
+				packet := avcodec.AvPacketAlloc()
+				err = v.Context.AvcodecReceivePacket(packet)
+
+				if err == avutil.AvErrorEAGAIN {
+					break
+				} else if err == avutil.AvErrorEOF {
+					close(outBuffer)
+					return
+				} else if err < 0 {
+					fmt.Printf("Error getting frame from encoder: %s\n",
+					avutil.ErrorFromCode(err))
+					close(outBuffer)
+					return
+				}
+			}
+		}
+	}();
+
+	return outBuffer
 }
 
 func (v *Video) SetOptions(width, height int) {

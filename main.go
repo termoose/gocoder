@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/giorgisio/goav/avutil"
+	_ "github.com/giorgisio/goav/avutil"
 	"gocoder/input"
 	"gocoder/encode"
 	"log"
@@ -32,11 +32,16 @@ func main() {
 
 	// Decode
 	decodedFrames := context.DecodeStream(c)
-	for elem := range decodedFrames {
-		width, height, _, _ := avutil.AvFrameGetInfo(elem)
-		fmt.Printf("Frame %dx%d\n", width, height)
-	}
+	//for elem := range decodedFrames {
+	//	width, height, _, _ := avutil.AvFrameGetInfo(elem)
+	//	fmt.Printf("Frame %dx%d\n", width, height)
+	//}
 
 	video := encode.NewVideoEncoder()
 	video.SetOptions(800, 600)
+	encodedFrames := video.Encode(decodedFrames)
+
+	for elem := range encodedFrames {
+		fmt.Printf("size: %d\n", elem.Size())
+	}
 }
