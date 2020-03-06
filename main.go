@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	_ "github.com/giorgisio/goav/avutil"
-	"gocoder/input"
 	"gocoder/encode"
+	"gocoder/input"
 	"log"
 )
 
@@ -23,8 +23,8 @@ func main() {
 	context.FindStreamInfo()
 	context.DumpStreamInfo()
 
-	for i, ctx := range context.DecodeContexts {
-		fmt.Printf("Stream %d codec %p\n", i, ctx)
+	for i, ctx := range context.Streams {
+		fmt.Printf("Stream %d stream %p\n", i, ctx)
 	}
 
 	// Demux

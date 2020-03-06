@@ -2,27 +2,32 @@ package input
 
 import (
 	"fmt"
-	"github.com/giorgisio/goav/avcodec"
-	"github.com/giorgisio/goav/avformat"
-	"github.com/giorgisio/goav/avutil"
-	"unsafe"
+	"github.com/asticode/goav/avcodec"
+	"github.com/asticode/goav/avformat"
+	"github.com/asticode/goav/avutil"
 )
 
 func init() {
-	avformat.AvRegisterAll()
+	//avformat.AvRegisterAll()
+}
+
+type Stream struct {
+	DecodeContext *avcodec.Context
+	Params        *avcodec.CodecParameters
 }
 
 type Context struct {
 	FormatCtx      *avformat.Context
 	Filename       string
-	DecodeContexts []*avcodec.Context
+	Streams        []Stream
+	//DecodeContexts []*avcodec.Context
 }
 
 func NewContext() Context {
 	return Context{
 		FormatCtx: avformat.AvformatAllocContext(),
 		Filename:  "",
-		DecodeContexts: nil,
+		Streams: nil,
 	}
 }
 
@@ -36,7 +41,7 @@ func (c *Context) ReadInput() chan *avcodec.Packet {
 			err := c.FormatCtx.AvReadFrame(packet)
 
 			// FIXME: find a good way to communicate this out through the channel?
-			if err == avutil.AvErrorEOF {
+			if err == avutil.AVERROR_EOF {
 				// Send the EOF packet to signal EOF to decoder thread
 				outBuffer <- packet
 				close(outBuffer)
@@ -65,9 +70,9 @@ func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) chan *avutil.Frame
 				frame := avutil.AvFrameAlloc()
 				err = c.getFromDecoder(index, frame)
 
-				if err == avutil.AvErrorEAGAIN {
+				if err == avutil.AVERROR_EAGAIN {
 					break
-				} else if err == avutil.AvErrorEOF {
+				} else if err == avutil.AVERROR_EOF {
 					fmt.Println("EOF decode")
 					// Send nil frame to signal EOF to encoders
 					outBuffer <- nil
@@ -75,7 +80,7 @@ func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) chan *avutil.Frame
 					return
 				} else if err < 0 {
 					fmt.Printf("Error getting frame from decoder: %s\n",
-						avutil.ErrorFromCode(err))
+						avutil.AvStrerr(err))
 					close(outBuffer)
 					return
 				}
@@ -95,58 +100,67 @@ func (c *Context) OpenInput(path string) error {
 	err := avformat.AvformatOpenInput(&c.FormatCtx, c.Filename, nil, nil)
 
 	if err != 0 {
-		return fmt.Errorf("OpenInput: %v", avutil.ErrorFromCode(err))
+		return fmt.Errorf("OpenInput: %v", avutil.AvStrerr(err))
 	}
 
 	for _, stream := range c.FormatCtx.Streams() {
-		codecContext := stream.Codec()
-
-		codec := avcodec.AvcodecFindDecoder(avcodec.CodecId(codecContext.GetCodecId()))
+		params := stream.CodecParameters()
+		codec := avcodec.AvcodecFindDecoder(params.CodecId())
 
 		if codec == nil {
-			return fmt.Errorf("could not find decoder for %v", codecContext.GetCodecId())
+			return fmt.Errorf("could not find decoder for %v", params.CodecId())
 		}
 
 		decodeContext := codec.AvcodecAllocContext3()
-		err = decodeContext.AvcodecCopyContext((*avcodec.Context)(unsafe.Pointer(codecContext)))
+		//err = decodeContext.AvcodecCopyContext((*avcodec.Context)(unsafe.Pointer(codecContext)))
+		err = avcodec.AvcodecParametersToContext(decodeContext, params)
 
 		if err != 0 {
-			return fmt.Errorf("OpenInput: %v", avutil.ErrorFromCode(err))
+			return fmt.Errorf("OpenInput: %v", avutil.AvStrerr(err))
 		}
 
 		err = decodeContext.AvcodecOpen2(codec, nil)
 
 		if err < 0 {
-			return fmt.Errorf("OpenInput: %v", avutil.ErrorFromCode(err))
+			return fmt.Errorf("OpenInput: %v", avutil.AvStrerr(err))
 		}
 
-		c.DecodeContexts = append(c.DecodeContexts, decodeContext)
+		c.Streams = append(c.Streams, Stream{
+			DecodeContext: decodeContext,
+			Params: params,
+		})
+
+		//c.DecodeContexts = append(c.DecodeContexts, decodeContext)
 	}
 
 	return nil
 }
 
 func (c *Context) getFromDecoder(index int, frame *avutil.Frame) int {
-	decodingContext := c.DecodeContexts[index]
-	return decodingContext.AvcodecReceiveFrame((*avcodec.Frame)(unsafe.Pointer(frame)))
+	//decodingContext := c.DecodeContexts[index]
+	stream := c.Streams[index]
+	return avcodec.AvcodecReceiveFrame(stream.DecodeContext, frame)
+	//return decodingContext.AvcodecReceiveFrame((*avcodec.Frame)(unsafe.Pointer(frame)))
 }
 
 func (c *Context) sendToDecoder(packet *avcodec.Packet) int {
 	streamIndex := packet.StreamIndex()
-	decodingContext := c.DecodeContexts[streamIndex]
+	stream := c.Streams[streamIndex]
+	//decodingContext := c.DecodeContexts[streamIndex]
 
-	err := decodingContext.AvcodecSendPacket(packet)
-
+	//err := decodingContext.AvcodecSendPacket(packet)
+	err := avcodec.AvcodecSendPacket(stream.DecodeContext, packet)
 	if err < 0 {
 		fmt.Printf("Error sending frame to decoder: %s\n",
-			avutil.ErrorFromCode(err))
+			avutil.AvStrerr(err))
 	}
 
 	return err
 }
 
 func (c *Context) CloseInput() {
-	c.FormatCtx.AvformatCloseInput()
+	//c.FormatCtx.AvformatCloseInput()
+	avformat.AvformatCloseInput(c.FormatCtx)
 }
 
 func (c *Context) FindStreamInfo() {

@@ -1,3 +1,5 @@
+github.com/asticode/goav v1.0.0 h1:fBE6jccXi8fwaNjsyGVGrDBYxSiAR6uHf8VceMcLYbc=
+github.com/asticode/goav v1.0.0/go.mod h1:PbMRIqgyIjrbfX/HUgO1Gn6YalnFDAevQrt8D8sQgvM=
 github.com/giorgisio/goav v0.1.0 h1:ZyfG3NfX7PMSimv4ulhmnQJf/XeHpMdGCn+afRmY5Oc=
 github.com/giorgisio/goav v0.1.0/go.mod h1:RtH8HyxLRLU1iY0pjfhWBKRhnbsnmfoI+FxMwb5bfEo=
 github.com/gosuri/uilive v0.0.0-20170323041506-ac356e6e42cd/go.mod h1:qkLSc0A5EXSP6B04TrN4oQoxqFI7A8XvoXSlJi8cwk8=

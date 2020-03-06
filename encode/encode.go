@@ -2,10 +2,8 @@ package encode
 
 import (
 	"fmt"
-	"github.com/giorgisio/goav/avcodec"
-	"github.com/giorgisio/goav/avformat"
-	"github.com/giorgisio/goav/avutil"
-	"unsafe"
+	"github.com/asticode/goav/avcodec"
+	"github.com/asticode/goav/avutil"
 )
 
 type Encoder interface {
@@ -23,26 +21,26 @@ type Audio struct {
 }
 
 func (v *Video) Encode(stream <-chan *avutil.Frame) chan *avcodec.Packet {
-	outBuffer := make(chan *avcodec.Packet, 150)
+	outBuffer := make(chan *avcodec.Packet, 50)
 
 	go func() {
 		for frame := range stream {
-			codecFrame := (*avcodec.Frame)(unsafe.Pointer(frame))
-			_ = v.Context.AvcodecSendFrame(codecFrame)
+			avcodec.AvcodecSendFrame(v.Context, frame)
 
 			for err := 0; err >= 0; {
 				packet := avcodec.AvPacketAlloc()
-				err = v.Context.AvcodecReceivePacket(packet)
+				err = avcodec.AvcodecReceivePacket(v.Context, packet)
+				//err = v.Context.AvcodecReceivePacket(packet)
 
-				if err == avutil.AvErrorEAGAIN {
+				if err == avutil.AVERROR_EAGAIN {
 					break
-				} else if err == avutil.AvErrorEOF {
+				} else if err == avutil.AVERROR_EOF {
 					fmt.Println("EOF encode")
 					close(outBuffer)
 					return
 				} else if err < 0 {
 					fmt.Printf("Error getting frame from encoder: %s\n",
-					avutil.ErrorFromCode(err))
+					avutil.AvStrerr(err))
 					close(outBuffer)
 					return
 				}
@@ -56,15 +54,19 @@ func (v *Video) Encode(stream <-chan *avutil.Frame) chan *avcodec.Packet {
 }
 
 func (v *Video) SetOptions(width, height int) {
-	v.Context.SetEncodeParams2(width, height, avcodec.AV_PIX_FMT_YUV,
-		true, 25)
+	v.Context.SetBitRate(1000000)
+	v.Context.SetTimeBase(avutil.NewRational(1, 25))
+	v.Context.SetFramerate(avutil.NewRational(25, 1))
+	v.Context.SetPixFmt(avutil.AV_PIX_FMT_YUV420P)
+	v.Context.SetGopSize(25)
+	v.Context.SetWidth(width)
+	v.Context.SetHeight(height)
 
-	// Hack for setting bitrate? Remove this in private fork
-	ctx := (*avformat.CodecContext)(unsafe.Pointer(v.Context))
-	ctx.SetBitRate(1000000)
-	ctx.SetTimeBase(avcodec.NewRational(1, 25))
+	err := v.Context.AvcodecOpen2(v.Codec, nil)
 
-	v.Context.AvcodecOpen2(v.Codec, nil)
+	if err < 0 {
+		fmt.Printf("Error opening codec: %v\n", avutil.AvStrerr(err))
+	}
 }
 
 func NewVideoEncoder() Video {
