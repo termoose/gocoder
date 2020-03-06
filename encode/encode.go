@@ -30,7 +30,6 @@ func (v *Video) Encode(stream <-chan *avutil.Frame) chan *avcodec.Packet {
 			for err := 0; err >= 0; {
 				packet := avcodec.AvPacketAlloc()
 				err = avcodec.AvcodecReceivePacket(v.Context, packet)
-				//err = v.Context.AvcodecReceivePacket(packet)
 
 				if err == avutil.AVERROR_EAGAIN {
 					break
@@ -75,19 +74,6 @@ func NewVideoEncoder() Video {
 	return Video{
 		Context: codec.AvcodecAllocContext3(),
 	}
-
-	//codec := avcodec.AvcodecFindEncoderByName("libx264")
-	//
-	//v.Context := codec.AvcodecAllocContext3()
-	//context.SetEncodeParams2(800, 600, avcodec.AV_PIX_FMT_YUV, true, 25)
-	//
-	//err := context.AvcodecOpen2(codec, nil)
-	//
-	//if err < 0 {
-	//	return fmt.Errorf("NewEncoder: %w, ", avutil.ErrorFromCode(err))
-	//}
-	//
-	//return nil
 }
 
 func (v *Video) EncodeStream(stream <-chan *avutil.Frame) {

@@ -7,10 +7,6 @@ import (
 	"github.com/asticode/goav/avutil"
 )
 
-func init() {
-	//avformat.AvRegisterAll()
-}
-
 type Stream struct {
 	DecodeContext *avcodec.Context
 	Params        *avcodec.CodecParameters
@@ -20,7 +16,6 @@ type Context struct {
 	FormatCtx      *avformat.Context
 	Filename       string
 	Streams        []Stream
-	//DecodeContexts []*avcodec.Context
 }
 
 func NewContext() Context {
@@ -129,26 +124,20 @@ func (c *Context) OpenInput(path string) error {
 			DecodeContext: decodeContext,
 			Params: params,
 		})
-
-		//c.DecodeContexts = append(c.DecodeContexts, decodeContext)
 	}
 
 	return nil
 }
 
 func (c *Context) getFromDecoder(index int, frame *avutil.Frame) int {
-	//decodingContext := c.DecodeContexts[index]
 	stream := c.Streams[index]
 	return avcodec.AvcodecReceiveFrame(stream.DecodeContext, frame)
-	//return decodingContext.AvcodecReceiveFrame((*avcodec.Frame)(unsafe.Pointer(frame)))
 }
 
 func (c *Context) sendToDecoder(packet *avcodec.Packet) int {
 	streamIndex := packet.StreamIndex()
 	stream := c.Streams[streamIndex]
-	//decodingContext := c.DecodeContexts[streamIndex]
 
-	//err := decodingContext.AvcodecSendPacket(packet)
 	err := avcodec.AvcodecSendPacket(stream.DecodeContext, packet)
 	if err < 0 {
 		fmt.Printf("Error sending frame to decoder: %s\n",
@@ -159,7 +148,6 @@ func (c *Context) sendToDecoder(packet *avcodec.Packet) int {
 }
 
 func (c *Context) CloseInput() {
-	//c.FormatCtx.AvformatCloseInput()
 	avformat.AvformatCloseInput(c.FormatCtx)
 }
 
