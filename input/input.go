@@ -68,9 +68,8 @@ func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) chan *avutil.Frame
 				if err == avutil.AVERROR_EAGAIN {
 					break
 				} else if err == avutil.AVERROR_EOF {
-					fmt.Println("EOF decode")
-					// Send nil frame to signal EOF to encoders
-					outBuffer <- nil
+					// Send EOF frame to signal EOF to encoders
+					outBuffer <- frame
 					close(outBuffer)
 					return
 				} else if err < 0 {

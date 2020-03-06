@@ -1,7 +1,6 @@
 package input
 
 import (
-	"github.com/giorgisio/goav/avutil"
 	"testing"
 )
 
@@ -23,7 +22,7 @@ func TestOpenClose(t *testing.T) {
 			t.Error(err)
 		}
 
-		nrStreams := len(context.DecodeContexts)
+		nrStreams := len(context.Streams)
 		if nrStreams != 2 {
 			t.Errorf("Missing streams, found %d\n", nrStreams)
 		}
@@ -35,7 +34,8 @@ func TestOpenClose(t *testing.T) {
 		frames := context.DecodeStream(c)
 		count := 0
 		for frame := range frames {
-			width, height, _, _ := avutil.AvFrameGetInfo(frame)
+			width := frame.Width()
+			height := frame.Height()
 
 			if width != 0 && height != 0 {
 				count++
