@@ -32,11 +32,8 @@ func main() {
 
 	// Decode
 	decodedFrames := context.DecodeStream(c)
-	//for elem := range decodedFrames {
-	//	width, height, _, _ := avutil.AvFrameGetInfo(elem)
-	//	fmt.Printf("Frame %dx%d\n", width, height)
-	//}
 
+	// Encode
 	video := encode.NewVideoEncoder()
 	video.SetOptions(560, 320)
 	encodedFrames := video.Encode(decodedFrames)

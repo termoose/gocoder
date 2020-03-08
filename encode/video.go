@@ -7,29 +7,31 @@ import (
 )
 
 type Video struct {
-	Codec   *avcodec.Codec
-	Context *avcodec.Context
+	codec   *avcodec.Codec
+	context *avcodec.Context
 }
 
 func NewVideoEncoder() Video {
 	codec := avcodec.AvcodecFindEncoderByName("libx264")
 
 	return Video{
-		Context: codec.AvcodecAllocContext3(),
+		codec:   codec,
+		context: codec.AvcodecAllocContext3(),
 	}
 }
 
-func (v *Video) Encode(stream <-chan *avutil.Frame) chan *avcodec.Packet {
+func (v *Video) Encode(stream <-chan Frame) chan *avcodec.Packet {
 	outBuffer := make(chan *avcodec.Packet, 50)
 
 	go func() {
 		defer close(outBuffer)
 
 		for frame := range stream {
+			avFrame := frame.avFrame
 			// Reset all frame types to avoid weird GOP's
-			frame.SetPictType(avutil.AV_PICTURE_TYPE_NONE)
+			avFrame.SetPictType(avutil.AV_PICTURE_TYPE_NONE)
 
-			ret := avcodec.AvcodecSendFrame(v.Context, frame)
+			ret := avcodec.AvcodecSendFrame(v.context, avFrame)
 
 			if ret < 0 {
 				fmt.Printf("Error sending frame to encoder: %s\n",
@@ -39,7 +41,7 @@ func (v *Video) Encode(stream <-chan *avutil.Frame) chan *avcodec.Packet {
 
 			for err := 0; err >= 0; {
 				packet := avcodec.AvPacketAlloc()
-				err = avcodec.AvcodecReceivePacket(v.Context, packet)
+				err = avcodec.AvcodecReceivePacket(v.context, packet)
 
 				if err == avutil.AVERROR_EAGAIN {
 					break
@@ -61,15 +63,15 @@ func (v *Video) Encode(stream <-chan *avutil.Frame) chan *avcodec.Packet {
 }
 
 func (v *Video) SetOptions(width, height int) {
-	v.Context.SetBitRate(1000000)
-	v.Context.SetTimeBase(avutil.NewRational(1, 25))
-	v.Context.SetFramerate(avutil.NewRational(25, 1))
-	v.Context.SetPixFmt(avutil.AV_PIX_FMT_YUV420P)
-	v.Context.SetGopSize(25)
-	v.Context.SetWidth(width)
-	v.Context.SetHeight(height)
+	v.context.SetBitRate(1000000)
+	v.context.SetTimeBase(avutil.NewRational(1, 25))
+	v.context.SetFramerate(avutil.NewRational(25, 1))
+	v.context.SetPixFmt(avutil.AV_PIX_FMT_YUV420P)
+	v.context.SetGopSize(25)
+	v.context.SetWidth(width)
+	v.context.SetHeight(height)
 
-	err := v.Context.AvcodecOpen2(v.Codec, nil)
+	err := v.context.AvcodecOpen2(v.codec, nil)
 
 	if err < 0 {
 		fmt.Printf("Error opening codec: %v\n", avutil.AvStrerr(err))

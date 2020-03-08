@@ -5,6 +5,7 @@ import (
 	"github.com/asticode/goav/avcodec"
 	"github.com/asticode/goav/avformat"
 	"github.com/asticode/goav/avutil"
+	"gocoder/encode"
 )
 
 type Stream struct {
@@ -53,8 +54,8 @@ func (c *Context) ReadInput() chan *avcodec.Packet {
 	return outBuffer
 }
 
-func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) chan *avutil.Frame {
-	outBuffer := make(chan *avutil.Frame, 50)
+func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) chan encode.Frame {
+	outBuffer := make(chan encode.Frame, 50)
 
 	go func() {
 		defer close(outBuffer)
@@ -80,7 +81,7 @@ func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) chan *avutil.Frame
 				}
 
 				if index == 0 {
-					outBuffer <- frame
+					outBuffer <- encode.NewFrame(frame, c.mediaType(index))
 				}
 			}
 		}
@@ -125,6 +126,10 @@ func (c *Context) OpenInput(path string) error {
 	}
 
 	return nil
+}
+
+func (c *Context) mediaType(index int) avformat.MediaType {
+	return avformat.MediaType(c.Streams[index].Params.CodecType())
 }
 
 func (c *Context) getFromDecoder(index int, frame *avutil.Frame) int {
