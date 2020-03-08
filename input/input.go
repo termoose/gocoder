@@ -57,6 +57,8 @@ func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) chan *avutil.Frame
 	outBuffer := make(chan *avutil.Frame, 50)
 
 	go func() {
+		defer close(outBuffer)
+
 		for packet := range stream {
 			_ = c.sendToDecoder(packet)
 			index := packet.StreamIndex()
@@ -68,14 +70,12 @@ func (c *Context) DecodeStream(stream <-chan *avcodec.Packet) chan *avutil.Frame
 				if err == avutil.AVERROR_EAGAIN {
 					break
 				} else if err == avutil.AVERROR_EOF {
-					// Send EOF frame to signal EOF to encoders
-					outBuffer <- frame
-					close(outBuffer)
+					// Send EOF frame to signal EOF to encoders?
+					//outBuffer <- frame
 					return
 				} else if err < 0 {
 					fmt.Printf("Error getting frame from decoder: %s\n",
 						avutil.AvStrerr(err))
-					close(outBuffer)
 					return
 				}
 
@@ -106,7 +106,6 @@ func (c *Context) OpenInput(path string) error {
 		}
 
 		decodeContext := codec.AvcodecAllocContext3()
-		//err = decodeContext.AvcodecCopyContext((*avcodec.Context)(unsafe.Pointer(codecContext)))
 		err = avcodec.AvcodecParametersToContext(decodeContext, params)
 
 		if err != 0 {

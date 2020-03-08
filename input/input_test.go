@@ -1,6 +1,9 @@
 package input
 
 import (
+	_ "fmt"
+	_ "github.com/asticode/goav/avcodec"
+	_ "github.com/asticode/goav/avformat"
 	"testing"
 )
 
@@ -36,6 +39,9 @@ func TestOpenClose(t *testing.T) {
 		for frame := range frames {
 			width := frame.Width()
 			height := frame.Height()
+
+			//fmt.Printf("Format: %d audio type: %v\n", format,
+			//	avcodec.AVMEDIA_TYPE_AUDIO)
 
 			if width != 0 && height != 0 {
 				count++

@@ -24,8 +24,19 @@ func (v *Video) Encode(stream <-chan *avutil.Frame) chan *avcodec.Packet {
 	outBuffer := make(chan *avcodec.Packet, 50)
 
 	go func() {
+		defer close(outBuffer)
+
 		for frame := range stream {
-			avcodec.AvcodecSendFrame(v.Context, frame)
+			// Reset all frame types to avoid weird GOP's
+			frame.SetPictType(avutil.AV_PICTURE_TYPE_NONE)
+
+			ret := avcodec.AvcodecSendFrame(v.Context, frame)
+
+			if ret < 0 {
+				fmt.Printf("Error sending frame to encoder: %s\n",
+					avutil.AvStrerr(ret))
+				return
+			}
 
 			for err := 0; err >= 0; {
 				packet := avcodec.AvPacketAlloc()
@@ -35,12 +46,10 @@ func (v *Video) Encode(stream <-chan *avutil.Frame) chan *avcodec.Packet {
 					break
 				} else if err == avutil.AVERROR_EOF {
 					fmt.Println("EOF encode")
-					close(outBuffer)
 					return
 				} else if err < 0 {
 					fmt.Printf("Error getting frame from encoder: %s\n",
 					avutil.AvStrerr(err))
-					close(outBuffer)
 					return
 				}
 
