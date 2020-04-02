@@ -7,7 +7,7 @@ import (
 )
 
 type Frame struct {
-	avFrame   *avutil.Frame
+	AVFrame   *avutil.Frame
 	frameType avformat.MediaType
 }
 
@@ -26,7 +26,7 @@ type Audio struct {
 
 func NewFrame(avFrame *avutil.Frame, frameType avformat.MediaType) Frame {
 	return Frame{
-		avFrame: avFrame,
+		AVFrame: avFrame,
 		frameType: frameType,
 	}
 }

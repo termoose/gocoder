@@ -27,7 +27,7 @@ func (v *Video) Encode(stream <-chan Frame) chan *avcodec.Packet {
 		defer close(outBuffer)
 
 		for frame := range stream {
-			avFrame := frame.avFrame
+			avFrame := frame.AVFrame
 			// Reset all frame types to avoid weird GOP's
 			avFrame.SetPictType(avutil.AV_PICTURE_TYPE_NONE)
 

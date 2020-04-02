@@ -37,8 +37,9 @@ func TestOpenClose(t *testing.T) {
 		frames := context.DecodeStream(c)
 		count := 0
 		for frame := range frames {
-			width := frame.Width()
-			height := frame.Height()
+			avFrame := frame.AVFrame
+			width := avFrame.Width()
+			height := avFrame.Height()
 
 			//fmt.Printf("Format: %d audio type: %v\n", format,
 			//	avcodec.AVMEDIA_TYPE_AUDIO)
